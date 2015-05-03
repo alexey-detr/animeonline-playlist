@@ -86,7 +86,11 @@ request.get(seriesDataUrl, function(err, response, body) {
         }
       });
       var size = _.sortByOrder(params, ['size'], [false])[0];
-      console.log('Found URL for episode %d at %dp', episode.index + 1, size['size']);
+      if (episode.fallback) {
+        console.log('Found fallback URL for episode %d at %dp', episode.index + 1, size['size']);
+      } else {
+        console.log('Found URL for episode %d at %dp', episode.index + 1, size['size']);
+      }
       resultSeriesData[episode.index] = {
         url: size['url'],
         type: episode.type,
