@@ -1,0 +1,31 @@
+{
+  "name": "animeonline-playlist",
+  "version": "1.0.0",
+  "description": "VLC playlist generator for animeonline.su",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/alexey-detr/animeonline-playlist.git"
+  },
+  "keywords": [
+    "anime",
+    "online",
+    "video",
+    "vlc"
+  ],
+  "author": "Alexey Ponomarev <xlz@ya.ru>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/alexey-detr/animeonline-playlist/issues"
+  },
+  "homepage": "https://github.com/alexey-detr/animeonline-playlist#readme",
+  "dependencies": {
+    "async": "^0.9.0",
+    "lodash": "^3.8.0",
+    "request": "^2.55.0",
+    "yargs": "^3.8.0"
+  }
+}
