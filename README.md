@@ -2,6 +2,8 @@
 
 This Node.js script which helps you to generate anime M3U playlist using popular russian anime website [http://animeonline.su/](http://animeonline.su/). You can use M3U playlist in your favorite video player.
 
+**For now the only supported source is [vk.com](https://vk.com/) so processed links have to contain [vk.com](https://vk.com/) sources.**
+
 ## Usage
 
 First of all you need to install NPM dependencies:
