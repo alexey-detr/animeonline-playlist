@@ -21,6 +21,7 @@ var fallbackMap = {
   rus: 'sub',
   sub: 'rus'
 };
+var maxTries = 5;
 
 var regExp = /animeonline\.su.*?\/(\d+)/;
 if (!regExp.test(argv.url)) {
@@ -30,6 +31,7 @@ if (!regExp.test(argv.url)) {
 
 var matches = regExp.exec(argv.url);
 var seriesDataUrl = 'http://animeonline.su/zend/anime/one/data/?anime_id=' + matches[1];
+console.log('Fetching anime data from %s', seriesDataUrl);
 var resultSeriesData = [];
 request.get(seriesDataUrl, function(err, response, body) {
   if (err) {
@@ -42,20 +44,39 @@ request.get(seriesDataUrl, function(err, response, body) {
     process.exit(1);
   }
   var episodesData = animeData.episodes.map(function onEpisode(episode, index) {
-    if (!episode[opts.type]) {
-      console.error('Type ' + opts.type + ' is not found in episode. You can try another video type.');
+    var type = opts.type;
+    var fallback = false;
+    if (!episode[type]) {
+      console.error('Type "%s" is not found in episode index %d. Fallback to another type.', opts.type, index);
+      fallback = true;
+      type = fallbackMap[type];
+    }
+    if (!episode[type]) {
+      console.error('Type "%s" is not found in episode index %d. No way to workaround this. Exiting.', opts.type, index);
       process.exit(1);
     }
     return {
       index: index,
-      url: episode[opts.type].v,
-      type: opts.type,
-      fallback: false
+      url: episode[type].v,
+      type: type,
+      fallback: fallback,
+      tries: 1
     };
   });
   async.eachLimit(episodesData, 1, function onEpisode(episode, nextEpisode) {
     request.get(episode.url, function(err, response, body) {
       if (err) {
+        if (episode.tries < maxTries) {
+          console.error('Error when trying fetch URL %s Will try again for %d time(s).', episode.url, maxTries - episode.tries);
+          episodesData.push({
+            index: episode.index,
+            url: animeData.episodes[episode.index][episode.type].v,
+            type: episode.type,
+            fallback: episode.fallback,
+            tries: 1 + episode.tries
+          });
+          return nextEpisode();
+        }
         console.error('Error when trying fetch URL %s', episode.url);
         process.exit(1);
       }
@@ -65,9 +86,10 @@ request.get(seriesDataUrl, function(err, response, body) {
           console.error("Can't find flashvars for %s. Trying fallback to '%s' type.", episode.url, fallbackMap[opts.type]);
           episodesData.push({
             index: episode.index,
-            url: animeData.episodes[episode.index][fallbackMap[opts.type]].v,
-            type: fallbackMap[opts.type],
-            fallback: true
+            url: animeData.episodes[episode.index][fallbackMap[episode.type]].v,
+            type: fallbackMap[episode.type],
+            fallback: true,
+            tries: 1
           });
         } else {
           console.error("Can't find flashvars for %s. Episode %d will be skipped.", episode.url, episode.index + 1);
