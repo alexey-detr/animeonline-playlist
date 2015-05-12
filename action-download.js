@@ -28,7 +28,11 @@ module.exports = function(animeData, episodesData, opts, callback) {
     }
     console.log('Downloading episode %d...', episode.index + 1);
     var tempFileName = sha1(fileName);
-    var axel = childProcess.spawn('axel', ['-a', '-n 8', '-o' + tempFileName, episode.url], {cwd: filePath});
+    var axelBinaryPath = 'axel';
+    if (/^win/.test(process.platform)) {
+      axelBinaryPath = path.join(__dirname, 'bin', 'windows', 'axel.exe');
+    }
+    var axel = childProcess.spawn(axelBinaryPath, ['-a', '-n 8', '-o' + tempFileName, episode.url], {cwd: filePath});
     axel.stdout.on('data', function(data) {
       process.stdout.write(data);
     });
