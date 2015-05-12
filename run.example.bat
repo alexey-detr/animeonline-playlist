@@ -1,5 +1,8 @@
 REM This is an example file, please copy it to run.bat file. Then make changes there.
 
+REM Just making console window larger.
+﻿mode con cols=120 lines=40 >nul
+
 REM This example shows how to generate the playlist for specified anime by id.
 node index.js --id=14373 --type=sub --action=playlist
 
