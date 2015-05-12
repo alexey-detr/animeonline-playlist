@@ -76,7 +76,7 @@ request.get(seriesDataUrl, function(err, response, body) {
       tries: 1
     };
   });
-  async.eachLimit(episodesData, 1, function onEpisode(episode, nextEpisode) {
+  async.eachLimit(episodesData, 8, function onEpisode(episode, nextEpisode) {
     request.get(episode.url, function(err, response, body) {
       if (err) {
         if (episode.tries < maxTries) {
