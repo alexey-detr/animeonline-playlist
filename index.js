@@ -2,19 +2,12 @@ var _ = require('lodash');
 var argv = require('yargs').argv;
 var request = require('request');
 var async = require('async');
-var fs = require('fs');
-var path = require('path');
-
-if (!argv.url) {
-  console.log('You must specify --url parameter. For example: --url=http://animeonline.su/anime-sub/tv-sub/12159-volejbol-haikyuu.html#!/episode/10/vk/sub');
-  process.exit(1);
-}
 
 var opts = {};
 opts.type = argv.type || 'rus';
 var allowedTypes = ['rus', 'sub'];
 if (allowedTypes.indexOf(opts.type) === -1) {
-  console.log('Type ' + opts.type + ' is not allowed. Use one of the following type: ', allowedTypes.join(', '));
+  console.log('Type "%s" is not allowed. Use one of the following types: %s', opts.type, allowedTypes.join(', '));
   process.exit(1);
 }
 var fallbackMap = {
@@ -23,14 +16,33 @@ var fallbackMap = {
 };
 var maxTries = 5;
 
-var regExp = /animeonline\.su.*?\/(\d+)/;
-if (!regExp.test(argv.url)) {
-  console.error('Looks like the specified URL is not URL contains anime series on animeonline.su');
+opts['downloads-dest'] = argv['downloads-dest'];
+
+opts.action = argv.action || 'download';
+var allowedActions = ['playlist', 'download'];
+if (allowedActions.indexOf(opts.action) === -1) {
+  console.log('Action "%s" is not allowed. Use one of the following actions: %s', opts.action, allowedActions.join(', '));
   process.exit(1);
 }
 
-var matches = regExp.exec(argv.url);
-var seriesDataUrl = 'http://animeonline.su/zend/anime/one/data/?anime_id=' + matches[1];
+var seriesId;
+if (argv.id) {
+  seriesId = argv.id;
+} else if (argv.url) {
+  var regExp = /animeonline\.su.*?\/(\d+)/;
+  if (!regExp.test(argv.url)) {
+    console.error('Looks like the specified URL is not URL contains anime series on animeonline.su');
+    process.exit(1);
+  }
+  var matches = regExp.exec(argv.url);
+  seriesId = matches[1];
+} else {
+  console.log('You must specify --id or --url parameter.');
+  process.exit(1);
+}
+
+var seriesDataUrl = 'http://animeonline.su/zend/anime/one/data/?anime_id=' + seriesId;
+
 console.log('Fetching anime data from %s', seriesDataUrl);
 var resultSeriesData = [];
 request.get(seriesDataUrl, function(err, response, body) {
@@ -43,6 +55,7 @@ request.get(seriesDataUrl, function(err, response, body) {
     console.error('No episodes are found in fetched data.');
     process.exit(1);
   }
+  console.log('Anime title: %s', animeData.anime.title);
   var episodesData = animeData.episodes.map(function onEpisode(episode, index) {
     var type = opts.type;
     var fallback = false;
@@ -114,9 +127,11 @@ request.get(seriesDataUrl, function(err, response, body) {
         console.log('Found URL for episode %d at %dp', episode.index + 1, size['size']);
       }
       resultSeriesData[episode.index] = {
+        index: episode.index,
         url: size['url'],
         type: episode.type,
-        fallback: episode.fallback
+        fallback: episode.fallback,
+        typeDescription: episode.fallback ? ' - ' + episode.type : ''
       };
       nextEpisode();
     })
@@ -125,25 +140,8 @@ request.get(seriesDataUrl, function(err, response, body) {
       console.error('Error occurred when fetching videos URLs.');
       process.exit(1);
     }
-    var m3uFileData = '';
-    m3uFileData += '#EXTM3U\n\n';
-    for (var i = 0; i < resultSeriesData.length; i += 1) {
-      var typeDescription = '';
-      if (resultSeriesData[i].fallback) {
-        typeDescription = ' - ' + resultSeriesData[i].type;
-      }
-      m3uFileData += '#EXTINF:,' + animeData.anime.title + ' - Episode ' + _.padLeft(i + 1, resultSeriesData.length.toString().length, '0') + typeDescription + '\n';
-      m3uFileData += resultSeriesData[i].url + '\n\n';
-    }
-    var titleForFilename = animeData.anime.title.replace(/[\/\\:\*\?"<>\|]/g, '-');
-    var filename = titleForFilename + ' - ' + opts.type + '.m3u';
-    var filePath = path.join(__dirname, 'playlists', filename);
-    fs.writeFile(filePath, m3uFileData, function(err) {
-      if (err) {
-        console.error("Can't write file %s", filename);
-        process.exit(1);
-      }
-      console.log('Playlist "%s" was generated.', filename);
+    require('./action-' + opts.action)(animeData, resultSeriesData, opts, function () {
+      console.log('Processing done.');
     });
   });
 });
