@@ -36,7 +36,7 @@ module.exports = function(animeData, episodesData, opts, callback) {
     var axel = childProcess.spawn(axelBinaryPath, ['-a', '-n 8', '-o' + tempFileName, episode.url], {cwd: filePath});
     axel.stdout.on('data', function(data) {
       if (isWindows) {
-        data = data.replace(/\r/g, '\033[0G');
+        data = data.toString().replace(/\r/g, '\033[0G');
       }
       process.stdout.write(data);
     });
